@@ -14,7 +14,113 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      test_questions: {
+        Row: {
+          created_at: string
+          id: string
+          options: Json
+          question_order: number
+          question_text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          options: Json
+          question_order: number
+          question_text: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          options?: Json
+          question_order?: number
+          question_text?: string
+        }
+        Relationships: []
+      }
+      test_sessions: {
+        Row: {
+          answers: Json
+          basic_result: string | null
+          created_at: string
+          full_result: string | null
+          id: string
+          is_paid: boolean | null
+          payment_session_id: string | null
+          profile_id: string | null
+          unique_code: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          answers: Json
+          basic_result?: string | null
+          created_at?: string
+          full_result?: string | null
+          id?: string
+          is_paid?: boolean | null
+          payment_session_id?: string | null
+          profile_id?: string | null
+          unique_code?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          answers?: Json
+          basic_result?: string | null
+          created_at?: string
+          full_result?: string | null
+          id?: string
+          is_paid?: boolean | null
+          payment_session_id?: string | null
+          profile_id?: string | null
+          unique_code?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          age: number | null
+          created_at: string
+          gender: string | null
+          id: string
+          name: string
+          occupation: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          age?: number | null
+          created_at?: string
+          gender?: string | null
+          id?: string
+          name: string
+          occupation?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          age?: number | null
+          created_at?: string
+          gender?: string | null
+          id?: string
+          name?: string
+          occupation?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
