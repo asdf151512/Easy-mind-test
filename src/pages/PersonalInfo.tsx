@@ -45,25 +45,40 @@ const PersonalInfo = () => {
     setIsSubmitting(true);
 
     try {
-      // 創建臨時用戶ID用於非註冊用戶
-      const tempUserId = crypto.randomUUID();
+      console.log('開始保存用戶資料...');
+      
+      // 不使用 user_id，讓它為 null（因為沒有身份認證）
+      const insertData = {
+        name: form.name,
+        age: parseInt(form.age),
+        gender: form.gender,
+        occupation: form.occupation || null,
+        user_id: null  // 設為 null 避免外鍵約束問題
+      };
+      
+      console.log('準備插入的資料:', insertData);
       
       const { data, error } = await supabase
         .from('user_profiles')
-        .insert({
-          user_id: tempUserId,
-          name: form.name,
-          age: parseInt(form.age),
-          gender: form.gender,
-          occupation: form.occupation || null
-        })
+        .insert(insertData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase 錯誤詳情:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
 
+      console.log('成功保存資料:', data);
+      
       // 將用戶資料存儲到 localStorage
-      localStorage.setItem('tempUserId', tempUserId);
+      const profileId = data.id;
+      localStorage.setItem('tempProfileId', profileId);
       localStorage.setItem('userProfile', JSON.stringify(data));
       
       toast({
@@ -72,11 +87,26 @@ const PersonalInfo = () => {
       });
 
       navigate('/test');
-    } catch (error) {
-      console.error('Error saving profile:', error);
+    } catch (error: any) {
+      console.error('完整錯誤信息:', error);
+      
+      let errorMessage = "請稍後再試";
+      
+      if (error.message) {
+        errorMessage = `錯誤: ${error.message}`;
+      }
+      
+      if (error.code) {
+        errorMessage += ` (代碼: ${error.code})`;
+      }
+      
+      if (error.details) {
+        errorMessage += ` 詳情: ${error.details}`;
+      }
+      
       toast({
         title: "保存失敗",
-        description: "請稍後再試",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
