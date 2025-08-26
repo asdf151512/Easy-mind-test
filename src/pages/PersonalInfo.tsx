@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,14 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-
-interface PersonalInfoForm {
-  name: string;
-  age: string;
-  gender: string;
-  occupation: string;
-}
+import { PersonalInfoForm } from "@/types";
+import { ProfileService } from "@/services/profileService";
 
 const PersonalInfo = () => {
   const [form, setForm] = useState<PersonalInfoForm>({
@@ -45,68 +39,34 @@ const PersonalInfo = () => {
     setIsSubmitting(true);
 
     try {
-      console.log('開始保存用戶資料...');
+      console.log('開始提交個人資料:', form);
       
-      // 不使用 user_id，讓它為 null（因為沒有身份認證）
-      const insertData = {
-        name: form.name,
-        age: parseInt(form.age),
-        gender: form.gender,
-        occupation: form.occupation || null,
-        user_id: null  // 設為 null 避免外鍵約束問題
-      };
+      const result = await ProfileService.createProfile(form);
       
-      console.log('準備插入的資料:', insertData);
-      
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .insert(insertData)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Supabase 錯誤詳情:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
+      if (result.success) {
+        console.log('個人資料創建成功:', result.data);
+        
+        toast({
+          title: "資料已保存",
+          description: "現在開始心理測驗"
         });
-        throw error;
-      }
 
-      console.log('成功保存資料:', data);
-      
-      // 將用戶資料存儲到 localStorage
-      const profileId = data.id;
-      localStorage.setItem('tempProfileId', profileId);
-      localStorage.setItem('userProfile', JSON.stringify(data));
-      
-      toast({
-        title: "資料已保存",
-        description: "現在開始心理測驗"
-      });
-
-      navigate('/test');
-    } catch (error: any) {
-      console.error('完整錯誤信息:', error);
-      
-      let errorMessage = "請稍後再試";
-      
-      if (error.message) {
-        errorMessage = `錯誤: ${error.message}`;
+        navigate('/test');
+      } else {
+        console.error('個人資料創建失敗:', result.error);
+        
+        toast({
+          title: "保存失敗",
+          description: result.error?.message || "請稍後再試",
+          variant: "destructive"
+        });
       }
-      
-      if (error.code) {
-        errorMessage += ` (代碼: ${error.code})`;
-      }
-      
-      if (error.details) {
-        errorMessage += ` 詳情: ${error.details}`;
-      }
+    } catch (error) {
+      console.error('意外錯誤:', error);
       
       toast({
         title: "保存失敗",
-        description: errorMessage,
+        description: "發生意外錯誤，請稍後再試",
         variant: "destructive"
       });
     } finally {
