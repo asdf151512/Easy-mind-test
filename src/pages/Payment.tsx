@@ -24,18 +24,42 @@ const Payment = () => {
   }, [navigate]);
 
   const handleStripePayment = () => {
-    if (!sessionId) return;
+    console.log('付費按鈕被點擊', { sessionId });
+    
+    if (!sessionId) {
+      console.error('沒有 sessionId');
+      toast({
+        title: "錯誤",
+        description: "無法找到測驗記錄，請重新測驗",
+        variant: "destructive"
+      });
+      return;
+    }
     
     // 儲存 session ID 以供成功頁面使用
     localStorage.setItem('paymentSessionId', sessionId);
+    console.log('已儲存 paymentSessionId:', sessionId);
     
     // 在新分頁開啟 Stripe 付費頁面
-    window.open('https://buy.stripe.com/test_5kQ5kw4r68gm5v98GU2VG00', '_blank');
+    const stripeUrl = 'https://buy.stripe.com/test_5kQ5kw4r68gm5v98GU2VG00';
+    console.log('開啟 Stripe 頁面:', stripeUrl);
     
-    toast({
-      title: "付費頁面已開啟",
-      description: "請在新分頁完成付費，完成後系統會自動更新",
-    });
+    const newWindow = window.open(stripeUrl, '_blank');
+    
+    if (newWindow) {
+      console.log('Stripe 頁面已開啟');
+      toast({
+        title: "付費頁面已開啟",
+        description: "請在新分頁完成付費，完成後請返回此頁面",
+      });
+    } else {
+      console.error('無法開啟新視窗，可能被瀏覽器阻擋');
+      toast({
+        title: "無法開啟付費頁面",
+        description: "請檢查瀏覽器是否阻擋彈出視窗，或手動前往付費連結",
+        variant: "destructive"
+      });
+    }
   };
 
   if (!sessionId) {
