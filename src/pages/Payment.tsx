@@ -11,7 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 const Payment = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showPaymentComplete, setShowPaymentComplete] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -24,7 +23,7 @@ const Payment = () => {
     setSessionId(storedSessionId);
   }, [navigate]);
 
-  const handleStripePayment = () => {
+  const handleStripePayment = async () => {
     console.log('付費按鈕被點擊', { sessionId });
     
     if (!sessionId) {
@@ -37,30 +36,56 @@ const Payment = () => {
       return;
     }
     
-    // 儲存 session ID 以供成功頁面使用
-    localStorage.setItem('paymentSessionId', sessionId);
-    console.log('已儲存 paymentSessionId:', sessionId);
+    setIsProcessing(true);
     
-    // 在新分頁開啟 Stripe 付費頁面
-    const stripeUrl = 'https://buy.stripe.com/test_5kQ5kw4r68gm5v98GU2VG00';
-    console.log('開啟 Stripe 頁面:', stripeUrl);
-    
-    const newWindow = window.open(stripeUrl, '_blank');
-    
-    if (newWindow) {
-      console.log('Stripe 頁面已開啟');
-      setShowPaymentComplete(true);
-      toast({
-        title: "付費頁面已開啟",
-        description: "完成付費後，請點擊下方的「付費完成」按鈕",
+    try {
+      console.log('調用創建付費會話 API');
+      
+      // 調用 edge function 創建付費會話
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: { sessionId }
       });
-    } else {
-      console.error('無法開啟新視窗，可能被瀏覽器阻擋');
+
+      if (error) {
+        console.error('創建付費會話失敗:', error);
+        throw error;
+      }
+
+      console.log('付費會話創建成功:', data);
+      
+      // 儲存相關資訊
+      localStorage.setItem('paymentSessionId', sessionId);
+      localStorage.setItem('checkoutSessionId', data.checkout_session_id);
+      
+      // 在新分頁開啟 Stripe Checkout 頁面
+      const newWindow = window.open(data.url, '_blank');
+      
+      if (newWindow) {
+        console.log('Stripe Checkout 頁面已開啟');
+        toast({
+          title: "付費頁面已開啟",
+          description: "請在新分頁完成付費，付費完成後頁面會自動跳轉",
+        });
+      } else {
+        console.error('無法開啟新視窗，可能被瀏覽器阻擋');
+        toast({
+          title: "無法開啟付費頁面",
+          description: "請檢查瀏覽器是否阻擋彈出視窗",
+          variant: "destructive"
+        });
+        // 如果無法開啟新視窗，在當前視窗開啟
+        window.location.href = data.url;
+      }
+      
+    } catch (error) {
+      console.error('付費流程錯誤:', error);
       toast({
-        title: "無法開啟付費頁面",
-        description: "請檢查瀏覽器是否阻擋彈出視窗，或手動前往付費連結",
+        title: "付費失敗",
+        description: "創建付費會話時發生錯誤，請稍後再試",
         variant: "destructive"
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -210,7 +235,7 @@ const Payment = () => {
               <h4 className="font-medium">付費方式</h4>
               <div className="text-center space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  點擊下方按鈕在新分頁開啟 Stripe 付費頁面
+                  點擊下方按鈕開啟 Stripe 安全付費頁面
                 </p>
                 <Button 
                   onClick={handleStripePayment}
@@ -218,15 +243,24 @@ const Payment = () => {
                   size="lg"
                   className="w-full"
                 >
-                  <CreditCard className="h-5 w-5 mr-2" />
-                  立即付費 $5 USD
+                  {isProcessing ? (
+                    <>
+                      <div className="animate-spin h-5 w-5 mr-2 border-2 border-white border-t-transparent rounded-full"></div>
+                      處理中...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-5 w-5 mr-2" />
+                      立即付費 $5 USD
+                    </>
+                  )}
                 </Button>
-                <div className="bg-blue-50 p-4 rounded-lg mt-4">
-                  <p className="text-sm text-blue-800">
-                    ⚠️ 付費功能目前正在開發中，暫時無法處理真實付費。
+                <div className="bg-green-50 p-4 rounded-lg mt-4">
+                  <p className="text-sm text-green-800">
+                    ✅ 使用 Stripe 安全付費系統，支援多種付費方式
                   </p>
-                  <p className="text-xs text-blue-600 mt-2">
-                    請聯繫客服以獲取完整報告，或等待付費系統完成。
+                  <p className="text-xs text-green-600 mt-2">
+                    付費完成後將自動跳轉回結果頁面並解鎖完整報告
                   </p>
                 </div>
               </div>
