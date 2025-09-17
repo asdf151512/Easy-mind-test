@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ProfileService } from "@/services/profileService";
 
 const PaymentSuccess = () => {
   const [isProcessing, setIsProcessing] = useState(true);
@@ -53,12 +54,14 @@ const PaymentSuccess = () => {
   };
 
   const processPaymentVerification = async (checkoutSessionId: string, testSessionId: string) => {
+    console.log('驗證付費狀態...', { checkoutSessionId: checkoutSessionId.substring(0, 20) + '...', testSessionId });
+    
     try {
-      console.log('驗證付費狀態...');
-
-      // 調用 edge function 驗證付費狀態
       const { data, error } = await supabase.functions.invoke('verify-payment', {
-        body: { checkoutSessionId, testSessionId }
+        body: { 
+          checkoutSessionId,
+          testSessionId 
+        }
       });
 
       if (error) {
@@ -67,36 +70,53 @@ const PaymentSuccess = () => {
       }
 
       console.log('付費驗證成功:', data);
-
+      
       // 更新本地存儲
-      const updatedResult = {
-        ...data.testSession,
-      };
-      localStorage.setItem('testResult', JSON.stringify(updatedResult));
-
+      if (data && data.session) {
+        localStorage.setItem('testResult', JSON.stringify(data.session));
+        localStorage.setItem('sessionId', data.session.id);
+        
+        // 同時更新profile資料
+        if (data.session.profile_id) {
+          const profileResult = await ProfileService.getProfile(data.session.profile_id);
+          if (profileResult.success && profileResult.data) {
+            localStorage.setItem('userProfile', JSON.stringify(profileResult.data));
+          }
+        }
+      }
+      
       // 清除付費相關的 localStorage
       localStorage.removeItem('paymentSessionId');
       localStorage.removeItem('checkoutSessionId');
-
-      setIsProcessing(false);
+      
       toast({
-        title: "付費驗證成功！",
-        description: "完整報告已解鎖",
+        title: "付費成功！",
+        description: "您的完整報告已解鎖，正在載入...",
       });
-
-    } catch (error) {
-      console.error('付費驗證失敗:', error);
+      
       setIsProcessing(false);
+      
+    } catch (error) {
+      console.error('付費驗證過程發生錯誤:', error);
+      
       toast({
         title: "驗證失敗",
-        description: "驗證付費狀態時發生錯誤，請聯繫客服",
+        description: "付費驗證時發生錯誤，請聯繫客服",
         variant: "destructive"
       });
+      
+      setIsProcessing(false);
     }
   };
 
   const handleViewReport = () => {
-    navigate('/result');
+    // 使用sessionId參數導航，確保能正確載入資料
+    const sessionId = localStorage.getItem('sessionId');
+    if (sessionId) {
+      navigate(`/result?sessionId=${sessionId}`);
+    } else {
+      navigate('/result');
+    }
   };
 
   return (

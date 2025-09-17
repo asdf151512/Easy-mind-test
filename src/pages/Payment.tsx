@@ -15,11 +15,31 @@ const Payment = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedSessionId = localStorage.getItem('sessionId');
+    // 嘗試從多個來源獲取sessionId
+    let storedSessionId = localStorage.getItem('sessionId');
+    
+    // 如果localStorage沒有，嘗試從測驗結果中獲取
     if (!storedSessionId) {
+      const testResult = localStorage.getItem('testResult');
+      if (testResult) {
+        try {
+          const parsed = JSON.parse(testResult);
+          storedSessionId = parsed.id;
+          // 同步設置sessionId
+          localStorage.setItem('sessionId', storedSessionId);
+        } catch (error) {
+          console.error('解析測驗結果失敗:', error);
+        }
+      }
+    }
+    
+    if (!storedSessionId) {
+      console.warn('找不到sessionId，重定向到首頁');
       navigate('/');
       return;
     }
+    
+    console.log('設置sessionId:', storedSessionId);
     setSessionId(storedSessionId);
   }, [navigate]);
 
@@ -57,22 +77,32 @@ const Payment = () => {
       localStorage.setItem('paymentSessionId', sessionId);
       localStorage.setItem('checkoutSessionId', data.checkout_session_id);
       
-      // 在新分頁開啟 Stripe Checkout 頁面
-      const newWindow = window.open(data.url, '_blank');
+      // 嘗試在新分頁開啟 Stripe Checkout 頁面
+      console.log('嘗試開啟付費頁面:', data.url);
       
-      if (newWindow) {
-        console.log('Stripe Checkout 頁面已開啟');
+      // 優先嘗試新分頁
+      const newWindow = window.open(data.url, '_blank', 'noopener,noreferrer');
+      
+      if (newWindow && !newWindow.closed) {
+        console.log('Stripe Checkout 頁面已在新分頁開啟');
         toast({
           title: "付費頁面已開啟",
           description: "請在新分頁完成付費，付費完成後頁面會自動跳轉",
         });
+        
+        // 監聽新視窗關閉，刷新當前頁面狀態
+        const checkClosed = setInterval(() => {
+          if (newWindow.closed) {
+            clearInterval(checkClosed);
+            console.log('付費視窗已關閉，刷新頁面狀態');
+            // 延遲一下再檢查，讓資料庫有時間更新
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
+          }
+        }, 1000);
       } else {
-        console.error('無法開啟新視窗，可能被瀏覽器阻擋');
-        toast({
-          title: "無法開啟付費頁面",
-          description: "請檢查瀏覽器是否阻擋彈出視窗",
-          variant: "destructive"
-        });
+        console.log('無法開啟新視窗，在當前視窗開啟');
         // 如果無法開啟新視窗，在當前視窗開啟
         window.location.href = data.url;
       }

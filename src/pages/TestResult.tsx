@@ -8,6 +8,7 @@ import { Lock, CheckCircle } from "lucide-react";
 import { TestSession, UserProfile } from "@/types";
 import { TestService } from "@/services/testService";
 import { ProfileService } from "@/services/profileService";
+import { storage } from "@/utils/storage";
 import { useToast } from "@/hooks/use-toast";
 
 const TestResult = () => {
@@ -26,14 +27,41 @@ const TestResult = () => {
     setIsLoading(true);
 
     try {
+      // 首先檢查URL參數中是否有sessionId
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionIdFromUrl = urlParams.get('sessionId');
+      
       // 檢查本地存儲的結果
-      const localResult = TestService.getLocalTestResult();
-      const localProfile = ProfileService.getLocalProfile();
+      let localResult = TestService.getLocalTestResult();
+      let localProfile = ProfileService.getLocalProfile();
 
-      console.log('本地存儲的資料:', { 
-        hasResult: !!localResult, 
-        hasProfile: !!localProfile 
+      console.log('資料檢查:', { 
+        hasLocalResult: !!localResult, 
+        hasLocalProfile: !!localProfile,
+        sessionIdFromUrl 
       });
+
+      // 如果有URL參數的sessionId，嘗試從資料庫載入
+      if (sessionIdFromUrl && (!localResult || localResult.id !== sessionIdFromUrl)) {
+        console.log('從資料庫載入測驗結果:', sessionIdFromUrl);
+        
+        const sessionResult = await TestService.getTestSession(sessionIdFromUrl);
+        if (sessionResult.success && sessionResult.data) {
+          localResult = sessionResult.data;
+          
+          // 同時載入對應的profile
+          if (localResult.profile_id) {
+            const profileResult = await ProfileService.getProfile(localResult.profile_id);
+            if (profileResult.success && profileResult.data) {
+              localProfile = profileResult.data;
+              
+              // 更新本地存儲
+              storage.saveTestResult(localResult);
+              storage.saveUserProfile(localProfile);
+            }
+          }
+        }
+      }
 
       if (!localResult || !localProfile) {
         console.warn('缺少必要資料，重定向到首頁');
@@ -60,7 +88,8 @@ const TestResult = () => {
       console.log('測驗結果載入成功:', {
         sessionId: localResult.id,
         profileId: localProfile.id,
-        uniqueCode: localResult.unique_code
+        uniqueCode: localResult.unique_code,
+        isPaid: localResult.is_paid
       });
 
     } catch (error) {

@@ -137,7 +137,8 @@ const PsychTest = () => {
           description: "正在為您生成測驗結果..."
         });
 
-        navigate('/result');
+        // 使用sessionId參數導航，確保資料正確載入
+        navigate(`/result?sessionId=${result.data.id}`);
       } else {
         console.error('保存測驗結果失敗:', result.error);
         
