@@ -56,6 +56,9 @@ const Payment = () => {
       return;
     }
     
+    // 先預開一個新分頁以避免被瀏覽器阻擋
+    const preOpenedWindow = window.open('', '_blank', 'noopener,noreferrer');
+    
     setIsProcessing(true);
     
     try {
@@ -77,14 +80,10 @@ const Payment = () => {
       localStorage.setItem('paymentSessionId', sessionId);
       localStorage.setItem('checkoutSessionId', data.checkout_session_id);
       
-      // 嘗試在新分頁開啟 Stripe Checkout 頁面
+      // 在新分頁或當前視窗開啟 Stripe Checkout 頁面
       console.log('嘗試開啟付費頁面:', data.url);
-      
-      // 優先嘗試新分頁
-      const newWindow = window.open(data.url, '_blank', 'noopener,noreferrer');
-      
-      if (newWindow && !newWindow.closed) {
-        console.log('Stripe Checkout 頁面已在新分頁開啟');
+      if (preOpenedWindow && !preOpenedWindow.closed) {
+        preOpenedWindow.location.href = data.url;
         toast({
           title: "付費頁面已開啟",
           description: "請在新分頁完成付費，付費完成後頁面會自動跳轉",
@@ -92,23 +91,25 @@ const Payment = () => {
         
         // 監聽新視窗關閉，刷新當前頁面狀態
         const checkClosed = setInterval(() => {
-          if (newWindow.closed) {
+          if (preOpenedWindow.closed) {
             clearInterval(checkClosed);
             console.log('付費視窗已關閉，刷新頁面狀態');
-            // 延遲一下再檢查，讓資料庫有時間更新
             setTimeout(() => {
               window.location.reload();
             }, 2000);
           }
         }, 1000);
       } else {
-        console.log('無法開啟新視窗，在當前視窗開啟');
-        // 如果無法開啟新視窗，在當前視窗開啟
+        console.log('無法預開新視窗，在當前視窗開啟');
         window.location.href = data.url;
       }
       
     } catch (error) {
       console.error('付費流程錯誤:', error);
+      // 關閉預開視窗
+      if (preOpenedWindow && !preOpenedWindow.closed) {
+        preOpenedWindow.close();
+      }
       toast({
         title: "付費失敗",
         description: "創建付費會話時發生錯誤，請稍後再試",
@@ -140,7 +141,11 @@ const Payment = () => {
         {/* 返回按鈕 */}
         <Button 
           variant="ghost" 
-          onClick={() => navigate('/result')}
+          onClick={() => {
+            const sid = localStorage.getItem('sessionId');
+            if (sid) navigate(`/result?sessionId=${sid}`);
+            else navigate('/result');
+          }}
           className="mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
