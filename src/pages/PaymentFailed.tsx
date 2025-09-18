@@ -7,7 +7,7 @@ const PaymentFailed = () => {
   const navigate = useNavigate();
 
   const handleRetryPayment = () => {
-    navigate('/payment');
+    navigate('/result');
   };
 
   const handleBackToResult = () => {

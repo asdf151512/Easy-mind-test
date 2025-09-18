@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { TestQuestion, TestAnswers } from "@/types";
 import { TestService } from "@/services/testService";
 import { ProfileService } from "@/services/profileService";
+import { getQuestionsByCategory } from "@/data/questions";
 
 const PsychTest = () => {
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
@@ -49,19 +50,21 @@ const PsychTest = () => {
     setIsLoading(true);
 
     try {
-      const result = await TestService.getQuestions();
-      
-      if (result.success && result.data) {
-        console.log('測驗題目載入成功:', result.data.length, '題');
-        setQuestions(result.data);
-      } else {
-        console.error('載入測驗題目失敗:', result.error);
-        toast({
-          title: "載入失敗",
-          description: result.error?.message || "無法載入測驗題目",
-          variant: "destructive"
-        });
-      }
+      // 從 localStorage 獲取選擇的類別
+      const selectedCategory = localStorage.getItem('selectedCategory') || 'all';
+      console.log('選擇的測驗類別:', selectedCategory);
+
+      // 根據類別載入對應題目
+      const categoryQuestions = getQuestionsByCategory(selectedCategory);
+
+      console.log('測驗題目載入成功:', categoryQuestions.length, '題');
+      setQuestions(categoryQuestions);
+
+      toast({
+        title: "題目載入成功",
+        description: `已準備好 ${categoryQuestions.length} 道${getCategoryName(selectedCategory)}測驗題目`,
+      });
+
     } catch (error) {
       console.error('載入測驗題目時發生錯誤:', error);
       toast({
@@ -72,6 +75,17 @@ const PsychTest = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getCategoryName = (category: string): string => {
+    const categoryNames: { [key: string]: string } = {
+      'family': '家庭',
+      'relationship': '感情關係',
+      'work': '工作',
+      'personal': '個人思維',
+      'all': '綜合'
+    };
+    return categoryNames[category] || '綜合';
   };
 
   const handleNext = () => {
@@ -190,6 +204,8 @@ const PsychTest = () => {
 
   const currentQuestion = questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+  const selectedCategory = localStorage.getItem('selectedCategory') || 'all';
+  const categoryName = getCategoryName(selectedCategory);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
@@ -198,13 +214,16 @@ const PsychTest = () => {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <CardTitle className="text-xl">
-                心理測驗
+                {categoryName}心理測驗
               </CardTitle>
               <span className="text-sm text-muted-foreground">
                 {currentQuestionIndex + 1} / {questions.length}
               </span>
             </div>
             <Progress value={progress} className="w-full" />
+            <p className="text-sm text-muted-foreground">
+              專注於{categoryName}領域的深度評估
+            </p>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">

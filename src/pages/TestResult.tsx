@@ -2,19 +2,23 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Lock, CheckCircle } from "lucide-react";
+import { Lock, CheckCircle, CreditCard } from "lucide-react";
 import { TestSession, UserProfile } from "@/types";
 import { TestService } from "@/services/testService";
 import { ProfileService } from "@/services/profileService";
 import { storage } from "@/utils/storage";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import RadarChart from "@/components/RadarChart";
+import { generateRadarChartData, generateScoreBreakdown } from "@/utils/chartDataGenerator";
+import { getQuestionsByCategory } from "@/data/questions";
 
 const TestResult = () => {
   const [testResult, setTestResult] = useState<TestSession | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -89,7 +93,9 @@ const TestResult = () => {
         sessionId: localResult.id,
         profileId: localProfile.id,
         uniqueCode: localResult.unique_code,
-        isPaid: localResult.is_paid
+        isPaid: localResult.is_paid,
+        hasFullResult: !!localResult.full_result,
+        fullResultLength: localResult.full_result ? localResult.full_result.length : 0
       });
 
     } catch (error) {
@@ -107,13 +113,52 @@ const TestResult = () => {
     }
   };
 
-  const handleUpgrade = () => {
-    if (testResult) {
-      // 將會話ID傳遞給支付頁面
-      localStorage.setItem('sessionId', testResult.id);
-      navigate('/payment');
+  const handleDirectPayment = async () => {
+    if (!testResult) {
+      toast({
+        title: "錯誤",
+        description: "無法找到測驗記錄，請重新測驗",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessingPayment(true);
+
+    try {
+      console.log('直接創建付費會話');
+
+      // 調用 edge function 創建付費會話
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: { sessionId: testResult.id }
+      });
+
+      if (error) {
+        console.error('創建付費會話失敗:', error);
+        throw error;
+      }
+
+      console.log('付費會話創建成功:', data);
+
+      // 儲存相關資訊
+      localStorage.setItem('paymentSessionId', testResult.id);
+      localStorage.setItem('checkoutSessionId', data.checkout_session_id);
+
+      // 在當前視窗開啟 Stripe Checkout 頁面
+      console.log('前往付費頁面:', data.url);
+      window.location.href = data.url;
+
+    } catch (error) {
+      console.error('付費流程錯誤:', error);
+      toast({
+        title: "付費失敗",
+        description: "創建付費會話時發生錯誤，請稍後再試",
+        variant: "destructive"
+      });
+      setIsProcessingPayment(false);
     }
   };
+
 
   const handleNewTest = () => {
     console.log('開始新測驗，清理舊數據...');
@@ -183,11 +228,6 @@ const TestResult = () => {
             <p className="text-muted-foreground">
               感謝 {userProfile.name} 完成心理測驗
             </p>
-            <div className="flex justify-center">
-              <Badge variant="secondary" className="text-sm">
-                測驗代碼：{testResult.unique_code}
-              </Badge>
-            </div>
           </CardHeader>
         </Card>
 
@@ -197,11 +237,71 @@ const TestResult = () => {
             <CardTitle className="text-xl">基本結果</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-base leading-relaxed">
-              {testResult.basic_result}
-            </p>
+            <div
+              className="text-base leading-relaxed enhanced-basic-report"
+              dangerouslySetInnerHTML={{ __html: testResult.basic_result }}
+            />
           </CardContent>
         </Card>
+
+        {/* 能力雷達圖 */}
+        {testResult && testResult.answers && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">能力分析圖表</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                try {
+                  // 獲取類別資訊
+                  const answers = testResult.answers as any;
+                  const category = answers._metadata?.category || 'all';
+
+                  // 獲取對應的問題
+                  const questions = getQuestionsByCategory(category);
+
+                  // 生成雷達圖數據
+                  const radarData = generateRadarChartData(answers, questions, category);
+                  const scoreBreakdown = generateScoreBreakdown(answers, questions);
+
+                  return (
+                    <div>
+                      <RadarChart data={radarData} title={`${category === 'family' ? '家庭' : category === 'relationship' ? '感情' : category === 'work' ? '工作' : category === 'personal' ? '個人' : '綜合'}能力雷達圖`} />
+
+                      <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                        <h5 className="font-semibold mb-2">答題分析</h5>
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                          <div>
+                            <div className="text-2xl font-bold text-green-600">{scoreBreakdown.highScore}</div>
+                            <div className="text-sm text-gray-600">高分回答</div>
+                          </div>
+                          <div>
+                            <div className="text-2xl font-bold text-yellow-600">{scoreBreakdown.mediumScore}</div>
+                            <div className="text-sm text-gray-600">中等回答</div>
+                          </div>
+                          <div>
+                            <div className="text-2xl font-bold text-red-600">{scoreBreakdown.lowScore}</div>
+                            <div className="text-sm text-gray-600">低分回答</div>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-2 text-center">
+                          總題數：{scoreBreakdown.totalQuestions} 題
+                        </p>
+                      </div>
+                    </div>
+                  );
+                } catch (error) {
+                  console.error('生成雷達圖時發生錯誤:', error);
+                  return (
+                    <div className="text-center text-gray-500 py-8">
+                      <p>暫時無法生成圖表，請稍後再試</p>
+                    </div>
+                  );
+                }
+              })()}
+            </CardContent>
+          </Card>
+        )}
 
         {/* 升級提示 */}
         {!testResult.is_paid && (
@@ -232,13 +332,28 @@ const TestResult = () => {
                   <p className="text-sm text-muted-foreground">一次性付費，永久保存</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-primary">NT$ 299</p>
-                  <p className="text-sm text-muted-foreground line-through">原價 NT$ 499</p>
+                  <p className="text-2xl font-bold text-primary">$5 USD</p>
+                  <p className="text-sm text-muted-foreground line-through">原價 $8 USD</p>
                 </div>
               </div>
               
-              <Button onClick={handleUpgrade} className="w-full" size="lg">
-                立即解鎖完整報告
+              <Button
+                onClick={handleDirectPayment}
+                disabled={isProcessingPayment}
+                className="w-full"
+                size="lg"
+              >
+                {isProcessingPayment ? (
+                  <>
+                    <div className="animate-spin h-5 w-5 mr-2 border-2 border-white border-t-transparent rounded-full"></div>
+                    處理中...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-5 w-5 mr-2" />
+                    立即付費解鎖 $5 USD
+                  </>
+                )}
               </Button>
             </CardContent>
           </Card>

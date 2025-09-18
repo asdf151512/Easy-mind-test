@@ -70,19 +70,23 @@ const PaymentSuccess = () => {
       }
 
       console.log('付費驗證成功:', data);
-      
+
       // 更新本地存儲
-      if (data && data.session) {
-        localStorage.setItem('testResult', JSON.stringify(data.session));
-        localStorage.setItem('sessionId', data.session.id);
-        
+      if (data && data.testSession) {
+        console.log('更新本地存儲，付費狀態:', data.testSession.is_paid, '完整報告:', !!data.testSession.full_result);
+        localStorage.setItem('testResult', JSON.stringify(data.testSession));
+        localStorage.setItem('sessionId', data.testSession.id);
+
         // 同時更新profile資料
-        if (data.session.profile_id) {
-          const profileResult = await ProfileService.getProfile(data.session.profile_id);
+        if (data.testSession.profile_id) {
+          const profileResult = await ProfileService.getProfile(data.testSession.profile_id);
           if (profileResult.success && profileResult.data) {
             localStorage.setItem('userProfile', JSON.stringify(profileResult.data));
           }
         }
+      } else {
+        console.error('付費驗證回應中沒有 testSession 數據:', data);
+        throw new Error('驗證成功但無法獲取測驗會話數據');
       }
       
       // 清除付費相關的 localStorage
@@ -93,8 +97,20 @@ const PaymentSuccess = () => {
         title: "付費成功！",
         description: "您的完整報告已解鎖，正在載入...",
       });
-      
+
       setIsProcessing(false);
+
+      // 檢查是否應該關閉頁面
+      const urlParams = new URLSearchParams(window.location.search);
+      const shouldClosePage = urlParams.get('close_tab') === 'true';
+
+      if (shouldClosePage) {
+        // 2秒後關閉當前頁面，返回上一頁
+        setTimeout(() => {
+          console.log('關閉付費成功頁面，返回結果頁面');
+          window.history.back();
+        }, 2000);
+      }
       
     } catch (error) {
       console.error('付費驗證過程發生錯誤:', error);
@@ -110,12 +126,21 @@ const PaymentSuccess = () => {
   };
 
   const handleViewReport = () => {
-    // 使用sessionId參數導航，確保能正確載入資料
-    const sessionId = localStorage.getItem('sessionId');
-    if (sessionId) {
-      navigate(`/result?sessionId=${sessionId}`);
+    // 檢查是否應該返回上一頁
+    const urlParams = new URLSearchParams(window.location.search);
+    const shouldClosePage = urlParams.get('close_tab') === 'true';
+
+    if (shouldClosePage) {
+      // 返回上一頁
+      window.history.back();
     } else {
-      navigate('/result');
+      // 使用sessionId參數導航，確保能正確載入資料
+      const sessionId = localStorage.getItem('sessionId');
+      if (sessionId) {
+        navigate(`/result?sessionId=${sessionId}`);
+      } else {
+        navigate('/result');
+      }
     }
   };
 
@@ -142,11 +167,17 @@ const PaymentSuccess = () => {
           ) : (
             <>
               <p className="text-muted-foreground">
-                您的完整心理分析報告已經解鎖！現在可以查看詳細的分析結果和個人化建議。
+                您的完整心理分析報告已經解鎖！
+                {new URLSearchParams(window.location.search).get('close_tab') === 'true'
+                  ? '即將自動返回查看完整報告...'
+                  : '現在可以查看詳細的分析結果和個人化建議。'
+                }
               </p>
-              <Button onClick={handleViewReport} size="lg" className="w-full">
-                查看完整報告
-              </Button>
+              {new URLSearchParams(window.location.search).get('close_tab') !== 'true' && (
+                <Button onClick={handleViewReport} size="lg" className="w-full">
+                  查看完整報告
+                </Button>
+              )}
             </>
           )}
         </CardContent>
