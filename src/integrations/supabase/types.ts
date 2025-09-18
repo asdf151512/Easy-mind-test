@@ -126,7 +126,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_test_session_by_code: {
+        Args: { session_code: string }
+        Returns: {
+          answers: Json
+          basic_result: string | null
+          created_at: string
+          full_result: string | null
+          id: string
+          is_paid: boolean | null
+          payment_session_id: string | null
+          profile_id: string | null
+          unique_code: string | null
+          updated_at: string
+          user_id: string | null
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
