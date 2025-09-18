@@ -441,24 +441,24 @@ export class TestService {
     console.log('獲取測驗結果:', sessionId);
     
     try {
-      const { data, error } = await supabase
-        .from('test_sessions')
-        .select('*')
-        .eq('id', sessionId)
-        .single();
+      // 使用安全的RPC函數來獲取測驗會話
+      const { data, error } = await supabase.rpc('get_test_session_by_code', {
+        session_code: sessionId
+      });
 
       if (error) {
         throw error;
       }
 
-      if (!data) {
+      if (!data || data.length === 0) {
         throw new AppError('找不到測驗結果', 'SESSION_NOT_FOUND');
       }
 
-      // 轉換數據類型
+      // 轉換數據類型（RPC返回數組，取第一個元素）
+      const sessionData = data[0];
       const testSession: TestSession = {
-        ...data,
-        answers: data.answers as unknown as TestAnswers
+        ...sessionData,
+        answers: sessionData.answers as unknown as TestAnswers
       };
 
       return {
@@ -469,6 +469,50 @@ export class TestService {
     } catch (error) {
       const handledError = ErrorHandler.handleError(error);
       console.error('獲取測驗結果失敗:', handledError);
+      
+      return {
+        success: false,
+        error: {
+          message: ErrorHandler.getErrorMessage(handledError),
+          code: handledError.code,
+          details: handledError.details
+        }
+      };
+    }
+  }
+
+  static async getTestSessionByCode(uniqueCode: string): Promise<ApiResponse<TestSession>> {
+    console.log('透過唯一代碼獲取測驗結果:', uniqueCode);
+    
+    try {
+      // 使用安全的RPC函數來獲取測驗會話
+      const { data, error } = await supabase.rpc('get_test_session_by_code', {
+        session_code: uniqueCode
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        throw new AppError('找不到測驗結果', 'SESSION_NOT_FOUND');
+      }
+
+      // 轉換數據類型（RPC返回數組，取第一個元素）
+      const sessionData = data[0];
+      const testSession: TestSession = {
+        ...sessionData,
+        answers: sessionData.answers as unknown as TestAnswers
+      };
+
+      return {
+        success: true,
+        data: testSession
+      };
+
+    } catch (error) {
+      const handledError = ErrorHandler.handleError(error);
+      console.error('透過唯一代碼獲取測驗結果失敗:', handledError);
       
       return {
         success: false,
