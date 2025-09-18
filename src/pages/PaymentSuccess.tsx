@@ -105,10 +105,16 @@ const PaymentSuccess = () => {
       const shouldClosePage = urlParams.get('close_tab') === 'true';
 
       if (shouldClosePage) {
-        // 2秒後關閉當前頁面，返回上一頁
+        // 2秒後關閉當前頁面，導航到結果頁面並強制刷新數據
         setTimeout(() => {
-          console.log('關閉付費成功頁面，返回結果頁面');
-          window.history.back();
+          console.log('關閉付費成功頁面，導航到結果頁面');
+          const testSessionId = urlParams.get('test_session_id') || localStorage.getItem('sessionId');
+          if (testSessionId) {
+            // 使用 navigate 而不是 history.back() 來確保正確載入更新的數據
+            navigate(`/result?sessionId=${testSessionId}&refresh=${Date.now()}`);
+          } else {
+            window.history.back();
+          }
         }, 2000);
       }
       
@@ -129,15 +135,19 @@ const PaymentSuccess = () => {
     // 檢查是否應該返回上一頁
     const urlParams = new URLSearchParams(window.location.search);
     const shouldClosePage = urlParams.get('close_tab') === 'true';
+    const testSessionId = urlParams.get('test_session_id') || localStorage.getItem('sessionId');
 
     if (shouldClosePage) {
-      // 返回上一頁
-      window.history.back();
+      // 導航到結果頁面並強制刷新數據
+      if (testSessionId) {
+        navigate(`/result?sessionId=${testSessionId}&refresh=${Date.now()}`);
+      } else {
+        window.history.back();
+      }
     } else {
       // 使用sessionId參數導航，確保能正確載入資料
-      const sessionId = localStorage.getItem('sessionId');
-      if (sessionId) {
-        navigate(`/result?sessionId=${sessionId}`);
+      if (testSessionId) {
+        navigate(`/result?sessionId=${testSessionId}&refresh=${Date.now()}`);
       } else {
         navigate('/result');
       }

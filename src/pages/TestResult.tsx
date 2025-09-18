@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -20,11 +20,45 @@ const TestResult = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   useEffect(() => {
     initializeResults();
   }, [navigate]);
+
+  // 監聽URL參數變化，如果sessionId或refresh參數改變則重新初始化
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const currentSessionId = urlParams.get('sessionId');
+      const refreshParam = urlParams.get('refresh');
+      const storedSessionId = storage.getTestResult()?.id;
+
+      if ((currentSessionId && currentSessionId !== storedSessionId) || refreshParam) {
+        console.log('檢測到URL參數變化，重新載入數據', { currentSessionId, refreshParam });
+        initializeResults();
+      }
+    };
+
+    // 監聽瀏覽器前進後退
+    window.addEventListener('popstate', handleUrlChange);
+
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+    };
+  }, []);
+
+  // 監聽location變化來檢測refresh參數
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const refreshParam = urlParams.get('refresh');
+
+    if (refreshParam) {
+      console.log('檢測到refresh參數，強制重新載入數據');
+      initializeResults();
+    }
+  }, [location.search]);
 
   const initializeResults = async () => {
     console.log('初始化測驗結果頁面...');
@@ -48,21 +82,37 @@ const TestResult = () => {
       // 如果有URL參數的sessionId，嘗試從資料庫載入
       if (sessionIdFromUrl && (!localResult || localResult.id !== sessionIdFromUrl)) {
         console.log('從資料庫載入測驗結果:', sessionIdFromUrl);
-        
+
         const sessionResult = await TestService.getTestSession(sessionIdFromUrl);
         if (sessionResult.success && sessionResult.data) {
           localResult = sessionResult.data;
-          
+
           // 同時載入對應的profile
           if (localResult.profile_id) {
             const profileResult = await ProfileService.getProfile(localResult.profile_id);
             if (profileResult.success && profileResult.data) {
               localProfile = profileResult.data;
-              
+
               // 更新本地存儲
               storage.saveTestResult(localResult);
               storage.saveUserProfile(localProfile);
             }
+          }
+        }
+      }
+
+      // 如果URL有sessionId但與本地結果不同，強制重新載入最新數據
+      if (sessionIdFromUrl && localResult && localResult.id === sessionIdFromUrl) {
+        console.log('檢查是否需要更新測驗結果數據:', sessionIdFromUrl);
+
+        const sessionResult = await TestService.getTestSession(sessionIdFromUrl);
+        if (sessionResult.success && sessionResult.data) {
+          // 如果資料庫中的付費狀態或完整報告與本地不同，更新本地數據
+          if (sessionResult.data.is_paid !== localResult.is_paid ||
+              sessionResult.data.full_result !== localResult.full_result) {
+            console.log('發現更新的測驗數據，更新本地存儲');
+            localResult = sessionResult.data;
+            storage.saveTestResult(localResult);
           }
         }
       }
