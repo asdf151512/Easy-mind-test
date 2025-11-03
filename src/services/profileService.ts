@@ -31,7 +31,7 @@ export class ProfileService {
           _name: formData.name.trim(),
           _age: age,
           _gender: formData.gender,
-          _occupation: formData.occupation?.trim() || null
+          _occupation: formData.occupation?.trim() || ''
         });
 
       if (error) {
