@@ -126,6 +126,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_anonymous_profile: {
+        Args: {
+          _age: number
+          _gender: string
+          _name: string
+          _occupation: string
+        }
+        Returns: {
+          age: number | null
+          created_at: string
+          gender: string | null
+          id: string
+          name: string
+          occupation: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_profile_by_session: {
         Args: { session_id: string }
         Returns: {

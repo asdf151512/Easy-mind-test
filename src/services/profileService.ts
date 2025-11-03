@@ -22,23 +22,17 @@ export class ProfileService {
         throw new AppError('請選擇性別', 'VALIDATION_ERROR');
       }
 
-      // 準備插入數據
-      const insertData = {
-        name: formData.name.trim(),
-        age: age,
-        gender: formData.gender,
-        occupation: formData.occupation?.trim() || null,
-        user_id: null // 匿名用戶
-      };
+      // Use secure RPC function to create anonymous profile
+      // This bypasses RLS policies through SECURITY DEFINER
+      console.log('調用安全函數創建資料...');
 
-      console.log('準備插入的資料:', insertData);
-
-      // 插入到數據庫
       const { data, error } = await supabase
-        .from('user_profiles')
-        .insert(insertData)
-        .select()
-        .single();
+        .rpc('create_anonymous_profile', {
+          _name: formData.name.trim(),
+          _age: age,
+          _gender: formData.gender,
+          _occupation: formData.occupation?.trim() || null
+        });
 
       if (error) {
         console.error('Supabase 插入錯誤:', error);
