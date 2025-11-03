@@ -126,6 +126,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_profile_by_session: {
+        Args: { session_id: string }
+        Returns: {
+          age: number | null
+          created_at: string
+          gender: string | null
+          id: string
+          name: string
+          occupation: string | null
+          updated_at: string
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "user_profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_test_session_by_code: {
         Args: { session_code: string }
         Returns: {
@@ -141,6 +160,12 @@ export type Database = {
           updated_at: string
           user_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "test_sessions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
     }
     Enums: {
