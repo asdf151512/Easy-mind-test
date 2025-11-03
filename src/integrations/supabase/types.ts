@@ -150,6 +150,33 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_test_session: {
+        Args: {
+          _answers: Json
+          _basic_result: string
+          _profile_id: string
+          _unique_code: string
+        }
+        Returns: {
+          answers: Json
+          basic_result: string | null
+          created_at: string
+          full_result: string | null
+          id: string
+          is_paid: boolean | null
+          payment_session_id: string | null
+          profile_id: string | null
+          unique_code: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "test_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_profile_by_session: {
         Args: { session_id: string }
         Returns: {

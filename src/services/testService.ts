@@ -377,25 +377,17 @@ export class TestService {
         }
       };
 
-      const sessionData = {
-        user_id: null, // 匿名用戶
-        profile_id: profile.id,
-        answers: extendedAnswers as any, // 轉換為Json類型
-        basic_result: basicResult,
-        unique_code: uniqueCode,
-        is_paid: false,
-        full_result: null,
-        payment_session_id: null
-      };
+      console.log('準備插入的測驗數據');
 
-      console.log('準備插入的測驗數據:', sessionData);
-
-      // 保存到數據庫
+      // Use secure RPC function to create test session
+      // This bypasses RLS policies through SECURITY DEFINER
       const { data, error } = await supabase
-        .from('test_sessions')
-        .insert(sessionData)
-        .select()
-        .single();
+        .rpc('create_test_session', {
+          _profile_id: profile.id,
+          _answers: extendedAnswers as any,
+          _basic_result: basicResult,
+          _unique_code: uniqueCode
+        });
 
       if (error) {
         console.error('Supabase 插入測驗結果錯誤:', error);
