@@ -78,24 +78,30 @@ export class ProfileService {
     console.log('獲取用戶資料:', profileId);
     
     try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', profileId)
-        .single();
+      // For anonymous users, we need to get profile through session
+      // This is more secure as it prevents direct profile access
+      const sessionId = storage.getSessionId();
+      
+      if (sessionId) {
+        // Use secure RPC function that validates session ownership
+        const { data, error } = await supabase
+          .rpc('get_profile_by_session', { session_id: sessionId });
 
-      if (error) {
-        throw error;
+        if (error) {
+          throw error;
+        }
+
+        if (!data || data.length === 0) {
+          throw new AppError('找不到用戶資料', 'PROFILE_NOT_FOUND');
+        }
+
+        return {
+          success: true,
+          data: data[0] as UserProfile
+        };
+      } else {
+        throw new AppError('無效的會話', 'INVALID_SESSION');
       }
-
-      if (!data) {
-        throw new AppError('找不到用戶資料', 'PROFILE_NOT_FOUND');
-      }
-
-      return {
-        success: true,
-        data: data as UserProfile
-      };
 
     } catch (error) {
       const handledError = ErrorHandler.handleError(error);
