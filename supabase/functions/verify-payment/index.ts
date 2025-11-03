@@ -31,10 +31,10 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // 創建 Supabase 客戶端
+    // 創建 Supabase 客戶端 - 使用 SERVICE_ROLE_KEY 來繞過 RLS
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
     // 從 Stripe 獲取結帳會話狀態
