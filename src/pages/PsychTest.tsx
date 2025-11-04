@@ -25,6 +25,19 @@ const PsychTest = () => {
     initializeTest();
   }, [navigate]);
 
+  // 恢復當前題目的答案
+  useEffect(() => {
+    if (questions.length > 0 && currentQuestionIndex < questions.length) {
+      const currentQuestion = questions[currentQuestionIndex];
+      const savedAnswer = answers[currentQuestion.id];
+      if (savedAnswer !== undefined) {
+        setSelectedOption(savedAnswer.optionIndex.toString());
+      } else {
+        setSelectedOption("");
+      }
+    }
+  }, [currentQuestionIndex, questions, answers]);
+
   const initializeTest = async () => {
     console.log('初始化測驗...');
     
@@ -111,7 +124,7 @@ const PsychTest = () => {
 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
-      setSelectedOption("");
+      // 答案恢復由 useEffect 自動處理
     } else {
       // 測驗完成，儲存結果
       finishTest(newAnswers);
@@ -121,11 +134,7 @@ const PsychTest = () => {
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(prev => prev - 1);
-      
-      // 恢復上一題的選擇
-      const prevQuestion = questions[currentQuestionIndex - 1];
-      const prevAnswer = answers[prevQuestion.id];
-      setSelectedOption(prevAnswer ? prevAnswer.optionIndex.toString() : "");
+      // 答案恢復由 useEffect 自動處理
     }
   };
 
