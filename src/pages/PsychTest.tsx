@@ -38,6 +38,20 @@ const PsychTest = () => {
     }
   }, [currentQuestionIndex, questions, answers]);
 
+  // 當選項改變時立即保存答案
+  useEffect(() => {
+    if (selectedOption !== "" && questions.length > 0 && currentQuestionIndex < questions.length) {
+      const currentQuestion = questions[currentQuestionIndex];
+      const optionIndex = parseInt(selectedOption);
+      const score = currentQuestion.options[optionIndex].score;
+      
+      setAnswers(prev => ({
+        ...prev,
+        [currentQuestion.id]: { optionIndex, score }
+      }));
+    }
+  }, [selectedOption, currentQuestionIndex, questions]);
+
   const initializeTest = async () => {
     console.log('初始化測驗...');
     
@@ -111,23 +125,12 @@ const PsychTest = () => {
       return;
     }
 
-    const currentQuestion = questions[currentQuestionIndex];
-    const optionIndex = parseInt(selectedOption);
-    const score = currentQuestion.options[optionIndex].score;
-
-    const newAnswers = {
-      ...answers,
-      [currentQuestion.id]: { optionIndex, score }
-    };
-
-    setAnswers(newAnswers);
-
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
       // 答案恢復由 useEffect 自動處理
     } else {
       // 測驗完成，儲存結果
-      finishTest(newAnswers);
+      finishTest(answers);
     }
   };
 
