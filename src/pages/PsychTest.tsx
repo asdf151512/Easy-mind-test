@@ -254,12 +254,7 @@ const PsychTest = () => {
           <div className="flex justify-between">
             <Button
               variant="outline"
-              onClick={() => {
-                if (currentQuestionIndex > 0) {
-                  setCurrentQuestionIndex(prev => prev - 1);
-                  setSelectedOption("");
-                }
-              }}
+              onClick={handlePrevious}
               disabled={currentQuestionIndex === 0}
             >
               上一題
