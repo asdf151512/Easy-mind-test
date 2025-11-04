@@ -15,7 +15,7 @@ const PsychTest = () => {
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<TestAnswers>({});
-  const [selectedOption, setSelectedOption] = useState<string>("");
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
@@ -25,32 +25,6 @@ const PsychTest = () => {
     initializeTest();
   }, [navigate]);
 
-  // 恢復當前題目的答案
-  useEffect(() => {
-    if (questions.length > 0 && currentQuestionIndex < questions.length) {
-      const currentQuestion = questions[currentQuestionIndex];
-      const savedAnswer = answers[currentQuestion.id];
-      if (savedAnswer !== undefined) {
-        setSelectedOption(savedAnswer.optionIndex.toString());
-      } else {
-        setSelectedOption("");
-      }
-    }
-  }, [currentQuestionIndex, questions, answers]);
-
-  // 當選項改變時立即保存答案
-  useEffect(() => {
-    if (selectedOption !== "" && questions.length > 0 && currentQuestionIndex < questions.length) {
-      const currentQuestion = questions[currentQuestionIndex];
-      const optionIndex = parseInt(selectedOption);
-      const score = currentQuestion.options[optionIndex].score;
-      
-      setAnswers(prev => ({
-        ...prev,
-        [currentQuestion.id]: { optionIndex, score }
-      }));
-    }
-  }, [selectedOption, currentQuestionIndex, questions]);
 
   const initializeTest = async () => {
     console.log('初始化測驗...');
@@ -116,7 +90,10 @@ const PsychTest = () => {
   };
 
   const handleNext = () => {
-    if (!selectedOption) {
+    const currentQuestion = questions[currentQuestionIndex];
+    const currentAnswer = answers[currentQuestion.id];
+
+    if (!currentAnswer) {
       toast({
         title: "請選擇答案",
         description: "請先選擇一個選項再繼續",
@@ -127,7 +104,6 @@ const PsychTest = () => {
 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
-      // 答案恢復由 useEffect 自動處理
     } else {
       // 測驗完成，儲存結果
       finishTest(answers);
@@ -245,8 +221,15 @@ const PsychTest = () => {
             </h3>
             
             <RadioGroup
-              value={selectedOption}
-              onValueChange={setSelectedOption}
+              value={answers[currentQuestion.id]?.optionIndex.toString() ?? ""}
+              onValueChange={(val) => {
+                const optionIndex = parseInt(val, 10);
+                const score = currentQuestion.options[optionIndex].score;
+                setAnswers(prev => ({
+                  ...prev,
+                  [currentQuestion.id]: { optionIndex, score }
+                }));
+              }}
               className="space-y-3"
             >
               {currentQuestion.options.map((option, index) => (
