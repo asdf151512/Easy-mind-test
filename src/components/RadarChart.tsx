@@ -20,11 +20,14 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, title = "能力雷達圖"
           <PolarAngleAxis
             dataKey="subject"
             tick={{ fontSize: 12, fill: '#374151' }}
+            tickLine={false}
           />
           <PolarRadiusAxis
             angle={90}
             domain={[0, 100]}
             tick={{ fontSize: 10, fill: '#6B7280' }}
+            tickCount={6}
+            axisLine={false}
           />
           <Radar
             name="得分"
