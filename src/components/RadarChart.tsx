@@ -12,20 +12,20 @@ interface RadarChartProps {
 
 const RadarChart: React.FC<RadarChartProps> = ({ data, title = "能力雷達圖" }) => {
   return (
-    <div className="w-full h-80 mb-6">
+    <div className="w-full h-96 mb-6">
       <h4 className="text-lg font-semibold mb-4 text-center">{title}</h4>
       <ResponsiveContainer width="100%" height="100%">
-        <RechartsRadarChart data={data}>
+        <RechartsRadarChart data={data} cx="50%" cy="50%" outerRadius="65%">
           <PolarGrid />
           <PolarAngleAxis
             dataKey="subject"
-            tick={{ fontSize: 12, fill: '#374151' }}
+            tick={{ fontSize: 14, fill: '#374151', fontWeight: 500 }}
             tickLine={false}
           />
           <PolarRadiusAxis
             angle={90}
             domain={[0, 100]}
-            tick={{ fontSize: 10, fill: '#6B7280' }}
+            tick={{ fontSize: 11, fill: '#6B7280' }}
             tickCount={6}
             axisLine={false}
           />
