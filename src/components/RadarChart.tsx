@@ -47,7 +47,7 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, title = "能力雷達圖"
             tickLine={false}
           />
           <PolarRadiusAxis
-            angle={18}
+            angle={90}
             domain={[0, 100]}
             tick={{ fontSize: 11, fill: '#6B7280' }}
             tickCount={6}
