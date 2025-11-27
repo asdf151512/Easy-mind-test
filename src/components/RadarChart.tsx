@@ -63,9 +63,7 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, title = "能力雷達圖"
           />
         </RechartsRadarChart>
       </ResponsiveContainer>
-      <div className="text-center text-sm text-gray-600 mt-2">
-        <p>得分範圍：0-100分，分數越高表示該領域表現越好</p>
-      </div>
+      
     </div>
   );
 };
