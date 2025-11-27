@@ -15,7 +15,7 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, title = "能力雷達圖"
     <div className="w-full h-96 mb-6">
       <h4 className="text-lg font-semibold mb-4 text-center">{title}</h4>
       <ResponsiveContainer width="100%" height="100%">
-        <RechartsRadarChart data={data} cx="50%" cy="50%" outerRadius="65%">
+        <RechartsRadarChart data={data} cx="50%" cy="50%" outerRadius="60%">
           <PolarGrid />
           <PolarAngleAxis
             dataKey="subject"
@@ -23,7 +23,7 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, title = "能力雷達圖"
             tickLine={false}
           />
           <PolarRadiusAxis
-            angle={90}
+            angle={18}
             domain={[0, 100]}
             tick={{ fontSize: 11, fill: '#6B7280' }}
             tickCount={6}
