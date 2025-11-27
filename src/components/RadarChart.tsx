@@ -11,6 +11,29 @@ interface RadarChartProps {
 }
 
 const RadarChart: React.FC<RadarChartProps> = ({ data, title = "能力雷達圖" }) => {
+  // 自定義標籤渲染函數
+  const renderCustomAxisTick = ({ payload, x, y, cx, cy }: any) => {
+    // 計算從中心到當前點的角度
+    const angle = Math.atan2(y - cy, x - cx);
+    // 增加距離（offset 越大，標籤離得越遠）
+    const offset = 30; // 可以調整這個值，原本大約是 15-20
+    const newX = cx + (x - cx + Math.cos(angle) * offset);
+    const newY = cy + (y - cy + Math.sin(angle) * offset);
+    
+    return (
+      <text
+        x={newX}
+        y={newY}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize={14}
+        fill="#374151"
+        fontWeight={500}
+      >
+        {payload.value}
+      </text>
+    );
+  };
   return (
     <div className="w-full h-96 mb-6">
       <h4 className="text-lg font-semibold mb-4 text-center">{title}</h4>
