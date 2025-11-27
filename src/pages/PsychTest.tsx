@@ -234,10 +234,10 @@ const PsychTest = () => {
             >
               {currentQuestion.options.map((option, index) => (
                 <div key={index} className="flex items-center space-x-2">
-                  <RadioGroupItem value={index.toString()} id={`option-${index}`} />
+                  <RadioGroupItem value={index.toString()} id={`option-${index}`} className="flex-shrink-0" />
                   <Label 
                     htmlFor={`option-${index}`} 
-                    className="flex-1 cursor-pointer"
+                    className="flex-1 cursor-pointer leading-normal flex items-center"
                   >
                     {option.text}
                   </Label>
