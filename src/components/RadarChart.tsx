@@ -38,11 +38,10 @@ const RadarChart: React.FC<RadarChartProps> = ({ data, title = "能力雷達圖"
     <div className="w-full h-96 mb-6">
       <h4 className="text-lg font-semibold mb-4 text-center">{title}</h4>
       <ResponsiveContainer width="100%" height="100%">
-        <RechartsRadarChart data={data} cx="50%" cy="50%" outerRadius="70%">
+        <RechartsRadarChart data={data} cx="50%" cy="50%" outerRadius="55%">
           <PolarGrid />
           <PolarAngleAxis
             dataKey="subject"
-            tick={{ fontSize: 14, fill: '#374151', fontWeight: 500 }}
             tick={renderCustomAxisTick}
             tickLine={false}
           />
