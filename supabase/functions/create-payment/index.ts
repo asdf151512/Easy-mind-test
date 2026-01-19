@@ -50,7 +50,7 @@ serve(async (req) => {
 
     if (testSession.is_paid) {
       console.log('此會話已經付費');
-      throw new Error("This session is already paid");
+      throw new Error("This session is already paid!");
     }
 
     console.log('創建 Stripe 結帳會話');
