@@ -59,7 +59,7 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       line_items: [
         {
-          price: "price_1S0lZP2Kv0e7EGDyhGKrGsWY", // $5 USD MindTest 價格
+          price: "price_1SPRd02Lwaud9Fca6bjOl1IK", // $5 USD MindTest 價格
           quantity: 1,
         },
       ],
